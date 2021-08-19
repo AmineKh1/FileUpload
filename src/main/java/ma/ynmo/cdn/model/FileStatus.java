@@ -8,7 +8,8 @@ public enum FileStatus {
     COMPLETED("completed"),
     FAILED("failed"),
     CANCLED("cancled"),
-    INVALID("invalid");
+    INVALID("invalid"),
+    DELETED("deleted");
 
     String name;
 
