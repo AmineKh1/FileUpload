@@ -18,5 +18,6 @@ public class Store {
     private UUID subID;
     private UUID ownerID;
     private Long currentSize;
+    private Long maxSize;
 
 }

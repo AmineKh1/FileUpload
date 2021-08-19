@@ -21,6 +21,7 @@ public class FileData {
     @Id
     private Long id;
     private String name;
+    private UUID ownerId;
     private UUID subID;
     private String url;
     private String type;
