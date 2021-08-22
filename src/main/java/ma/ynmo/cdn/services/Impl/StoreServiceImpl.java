@@ -40,7 +40,7 @@ public class StoreServiceImpl implements StoreService {
                     if (!types.contains(fileData.getType()))
                         return Mono.error(new IllegalArgumentException("invalid image Type"));
                     fileData.setUrl(String.format("clients/%s/stores/%s/images/",store.getOwnerID(),store.getSubID()));
-                    fileData.setName(String.format("%s_%s", UUID.randomUUID(), fileData.getName()));
+                    fileData.setBaseName(String.format("%s_%s", UUID.randomUUID(), fileData.getBaseName()));
                     return Mono.just(fileData);
                 });
     }

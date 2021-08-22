@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -35,14 +36,17 @@ public class FileUploadServiceImpl implements FileUploadServices {
                         FileUploadServiceImpl
                                 .createFile(mfile, ownerID, subID,
                                         storeService,sequenceGeneratorService))
-                .doOnSuccess(fileData -> FileUploadServiceImpl.zipAndTransaferToInputDir(fileData,file));
+                ;
     }
 
     // zip fileData and file then write files to spring integration input Dir
     // then the image proccessing service will extract the zip file
     // and put files inside this zip f
-    public static void zipAndTransaferToInputDir(FileData fileData, Mono<MultipartFile> file) {
-       //    file.subscribe(f -> zipFile(fileData, f ) );
+    public static void zipAndTransaferToInputDir(FileData fileData, FilePart file) {
+    //zip file
+        // add the file
+        // trnsfer file to
+    // file.transferTo("des");
     }
 
 
@@ -55,7 +59,8 @@ public class FileUploadServiceImpl implements FileUploadServices {
     {
         return sequenceGeneratorService.generateNewId(FileData.FILE_DATA_SEQ)
                 .flatMap(id ->FileUploadServiceImpl.createNewFileData(id,file, ownerID, subID))
-                .flatMap(storeService::verifyFile);
+                .flatMap(storeService::verifyFile)
+                .doOnSuccess(fileData -> FileUploadServiceImpl.zipAndTransaferToInputDir(fileData,file));
     }
 
     private static Mono<FileData> createNewFileData(
@@ -68,7 +73,8 @@ public class FileUploadServiceImpl implements FileUploadServices {
         return Mono.just(new FileData(id,file.filename(),ownerID,
                 subID,
                 null,
-                file.headers().getContentType().getType(),FileStatus.PENDING,
+                Objects.requireNonNull(file.headers().getContentType()).getType(),FileStatus.PENDING,
                 file.headers().getContentLength(), LocalDateTime.now()));
     }
+
 }

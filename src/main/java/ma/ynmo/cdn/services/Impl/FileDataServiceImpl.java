@@ -1,15 +1,21 @@
 package ma.ynmo.cdn.services.Impl;
 
+import lombok.AllArgsConstructor;
 import ma.ynmo.cdn.model.FileData;
 import ma.ynmo.cdn.model.FileStatus;
+import ma.ynmo.cdn.repository.FileDataRepository;
 import ma.ynmo.cdn.services.FileDataService;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Service
+@AllArgsConstructor
 public class FileDataServiceImpl implements FileDataService {
+    private final FileDataRepository fileDataRepository;
     @Override
     public Mono<FileData> findByID(Long id) {
-        return null;
+        return fileDataRepository.findById(id);
     }
 
     @Override
@@ -19,12 +25,12 @@ public class FileDataServiceImpl implements FileDataService {
 
     @Override
     public Flux<FileData> findAllByStatus(FileStatus status) {
-        return null;
+        return fileDataRepository.findAllByStatus(status);
     }
 
     @Override
     public Mono<FileData> save(FileData file) {
-        return null;
+        return fileDataRepository.save(file);
     }
 
     @Override

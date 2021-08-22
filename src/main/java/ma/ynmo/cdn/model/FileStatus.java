@@ -17,7 +17,10 @@ public enum FileStatus {
     {
         this.name =name;
     }
-
+    public String getName()
+    {
+        return this.name;
+    }
     public static  FileStatus fromName(String name)
     {
         return Stream.of(FileStatus.values())

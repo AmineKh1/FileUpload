@@ -20,7 +20,7 @@ public class FileData {
 
     @Id
     private Long id;
-    private String name;
+    private String baseName;
     private UUID ownerId;
     private UUID subID;
     private String url;

@@ -27,12 +27,12 @@ public class PlatFormFilesServiceImpl implements PlatFormFilesServices {
     }
     @Override
     public Mono<Platform> save(Platform obj) {
-        List<String> errors= PlatFormFilesValidator.validate(obj);
-
-        if(!errors.isEmpty()) {
-            log.error("PLAT FORM IS NOT VALID", obj);
-            throw new InvalidEntityException("Plat Form is not valid", ErrorCodes.PLATFORM_NOT_VALID,errors);
-        }
+//        List<String> errors= PlatFormFilesValidator.validate(obj);
+//
+//        if(!errors.isEmpty()) {
+//            log.error("PLAT FORM IS NOT VALID", obj);
+//            throw new InvalidEntityException("Plat Form is not valid", ErrorCodes.PLATFORM_NOT_VALID,errors);
+//        }
         return platFormFilesRepository.save(obj);
     }
 
