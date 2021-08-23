@@ -12,7 +12,7 @@ public class FileStoreValidator {
 //            errors.add("put name file");
 //        }
 //        if (fileStore == null || fileStore.getType() == null) {
-//            errors.add("put type file");
+//           errors.add("put type file");
 //        }
 //        if (fileStore == null || fileStore.getUrl() == null) {
 //            errors.add("put url file");

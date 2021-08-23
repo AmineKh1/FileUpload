@@ -22,8 +22,8 @@ public class CdnApplication {
 	CommandLineRunner run(FileDataService fileDataService)
 	{
 		return args -> {
-			fileDataService.save(new FileData(0L,"sdf", UUID.randomUUID(), UUID.randomUUID(),
-					"sdf", "url", FileStatus.CANCLED ,1L, LocalDateTime.now())).subscribe();
+			fileDataService.save(new FileData(0L,"img.png", UUID.randomUUID(), UUID.randomUUID(),
+					"sdf", "png", FileStatus.PENDING ,1L, LocalDateTime.now())).subscribe();
 
 			fileDataService.findAllByStatus(FileStatus.PENDING)
 					.subscribe(System.out::println);

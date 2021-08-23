@@ -9,8 +9,8 @@ public enum FileStatus {
     FAILED("failed"),
     CANCLED("cancled"),
     INVALID("invalid"),
-    DELETED("deleted");
-
+    DELETED("deleted"),
+    UPLOADING("uploading");
     String name;
 
     FileStatus(String name)
