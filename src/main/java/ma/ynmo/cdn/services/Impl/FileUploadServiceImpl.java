@@ -31,6 +31,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
     public Mono<FileData> storeuploadImage(Mono<FilePart> file,
                                            UUID ownerID,
                                            UUID subID,
+                                           long contentLength,
                                            File in) {
         return file
                 .flatMap(mfile ->
@@ -38,6 +39,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                 .createFile(mfile, ownerID, subID,
                                         storeService,
                                         sequenceGeneratorService,
+                                        contentLength,
                                         in))
                 .flatMap(fileDataService::save)
                 ;
@@ -60,10 +62,12 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                              UUID subID,
                                              StoreService storeService,
                                              SequenceGeneratorService sequenceGeneratorService ,
+                                             long contentLength,
                                              File in)
     {
         return sequenceGeneratorService.generateNewId(FileData.FILE_DATA_SEQ)
-                .flatMap(id ->FileUploadServiceImpl.createNewFileData(id,file, ownerID, subID))
+                .flatMap(id ->FileUploadServiceImpl
+                        .createNewFileData(id,file, ownerID, contentLength,subID))
                 .flatMap(storeService::verifyFile)
                 .doOnSuccess(fileData -> FileUploadServiceImpl.TransaferToInputDir(fileData,file,in ));
     }
@@ -72,14 +76,17 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                             Long id,
                                              FilePart file,
                                              UUID ownerID,
+                                             long contentLength,
                                              UUID subID)
     {
         // generate file url later
-        return Mono.just(new FileData(id,file.filename(),ownerID,
+        return Mono.just(new FileData(id, file.filename(),ownerID,
                 subID,
                 null,
-                Objects.requireNonNull(file.headers().getContentType()).getType(),FileStatus.PENDING,
-                file.headers().getContentLength(), LocalDateTime.now()));
+                Objects.requireNonNull(file.headers().getContentType()).getType(),
+                FileStatus.PENDING,
+                contentLength,
+                LocalDateTime.now()));
     }
 
 }

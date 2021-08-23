@@ -52,7 +52,7 @@ public class MidIntegrationFlow {
                         .flatMap(fileData -> Mono.just(
                                 MessageBuilder.withPayload(source)
                                        // .setHeader(FileHeaders.FILENAME, fileData.getBaseName())
-
+                                        .setHeader("AbsolutePath", source.getAbsolutePath())
                                         .setHeader(FileHeaders.FILENAME, fileData.getBaseName())
                                         .setHeader("realFileName", source.getAbsoluteFile().getName())
                                         .build())).flux().blockFirst();
@@ -75,12 +75,16 @@ public class MidIntegrationFlow {
                         .fileNameGenerator(
                         message ->{
                             System.out.println(message);
+                            System.out.println(message.getHeaders().get("AbsolutePath"));
+                            new File((String) message.getHeaders().get("AbsolutePath")).delete();
                             return( (String)message.getHeaders().get("realFileName")).split("\\.")[0]
                                     +"_" +
                                     ( (String)message.getHeaders().get(FileHeaders.FILENAME)).split("\\.")[0] +
                             ".zip";
                         }
                         ))
+
+
                 .get();
 
         // here is an example of ftp implimentation but we want to keep headers so

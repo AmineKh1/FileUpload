@@ -10,5 +10,5 @@ import java.nio.channels.MulticastChannel;
 import java.util.UUID;
 
 public interface FileUploadServices {
-    Mono<FileData> storeuploadImage(Mono<FilePart> file, UUID ownerID, UUID subID, File in);
+    Mono<FileData> storeuploadImage(Mono<FilePart> file, UUID ownerID, UUID subID,long contentLength, File in);
 }

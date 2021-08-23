@@ -27,9 +27,10 @@ public class StoreUploadFile {
             @RequestPart("file") Mono<FilePart> multipartFile,
             @PathVariable("subID") UUID subID,
             @PathVariable("ownerID") UUID ownerID,
+            @RequestHeader("Content-Length") long contentLength,
             @Value("${input-directory:${HOME}/Desktop/in}") File in)
     {
-        return fileUploadService.storeuploadImage(multipartFile, ownerID, subID, in);
+        return fileUploadService.storeuploadImage(multipartFile, ownerID, subID,contentLength, in);
     }
 
 }

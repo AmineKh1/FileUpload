@@ -71,6 +71,7 @@ public class OutIntegrationFlow {
                         .flatMap(fileData -> Mono.just(
                                 MessageBuilder.withPayload(source)
                                         .setHeader(FileHeaders.FILENAME,  fileData.getBaseName()) //source.getAbsoluteFile().getName() )
+
                                         // set custom  varialble for aws integration
                                         .setHeader("awsUrl", fileData.getUrl())
                                         .setHeader("realFileName", fileData.getBaseName())
@@ -84,7 +85,9 @@ public class OutIntegrationFlow {
 
 
         return IntegrationFlows
-                .from(Files.inboundAdapter(out).autoCreateDirectory(true).preventDuplicates(true),
+                .from(Files.inboundAdapter(out)
+                                .autoCreateDirectory(true)
+                        .preventDuplicates(true),
                         poller -> poller.poller(pm -> pm.fixedRate(1000)))
               .transform(File.class, transformer)
                 .transform(unZipTransformer)
