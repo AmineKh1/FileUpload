@@ -11,4 +11,5 @@ public interface StoreService {
     Mono<FileData> verifyFile(FileData fileData);
     Mono<Store> findStoreByOwnerID(UUID ownerId);
     Mono<Store> findStoreBySubID(UUID subID);
+    Mono<Store> save(Store store);
 }

@@ -9,9 +9,9 @@ import ma.ynmo.cdn.services.SequenceGeneratorService;
 import ma.ynmo.cdn.services.StoreService;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -20,7 +20,7 @@ import java.util.UUID;
 @Service
 public class FileUploadServiceImpl implements FileUploadServices {
 
-    private  final FileDataService fileDAtaServiceImpl;
+    private  final FileDataService fileDataService;
     private  final SequenceGeneratorService sequenceGeneratorService;
     private final StoreService storeService;
 
@@ -30,23 +30,27 @@ public class FileUploadServiceImpl implements FileUploadServices {
     @Override
     public Mono<FileData> storeuploadImage(Mono<FilePart> file,
                                            UUID ownerID,
-                                           UUID subID) {
+                                           UUID subID,
+                                           File in) {
         return file
                 .flatMap(mfile ->
                         FileUploadServiceImpl
                                 .createFile(mfile, ownerID, subID,
-                                        storeService,sequenceGeneratorService))
+                                        storeService,
+                                        sequenceGeneratorService,
+                                        in))
+                .flatMap(fileDataService::save)
                 ;
     }
 
-    // zip fileData and file then write files to spring integration input Dir
-    // then the image proccessing service will extract the zip file
-    // and put files inside this zip f
-    public static void zipAndTransaferToInputDir(FileData fileData, FilePart file) {
-    //zip file
-        // add the file
-        // trnsfer file to
-    // file.transferTo("des");
+   // rename file with file data id
+    public static void TransaferToInputDir(FileData fileData, FilePart file, File in) {
+        var filename = new StringBuilder();
+        filename.append(fileData.getId());
+        filename.append(".");
+       var n =   fileData.getBaseName().split("\\.");
+      filename.append(n[n.length - 1]);
+      file.transferTo(new File(in.getAbsolutePath() +"/" + filename)).subscribe();
     }
 
 
@@ -55,12 +59,13 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                              UUID ownerID,
                                              UUID subID,
                                              StoreService storeService,
-                                             SequenceGeneratorService sequenceGeneratorService )
+                                             SequenceGeneratorService sequenceGeneratorService ,
+                                             File in)
     {
         return sequenceGeneratorService.generateNewId(FileData.FILE_DATA_SEQ)
                 .flatMap(id ->FileUploadServiceImpl.createNewFileData(id,file, ownerID, subID))
                 .flatMap(storeService::verifyFile)
-                .doOnSuccess(fileData -> FileUploadServiceImpl.zipAndTransaferToInputDir(fileData,file));
+                .doOnSuccess(fileData -> FileUploadServiceImpl.TransaferToInputDir(fileData,file,in ));
     }
 
     private static Mono<FileData> createNewFileData(

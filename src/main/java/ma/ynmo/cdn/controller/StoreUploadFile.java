@@ -3,11 +3,13 @@ package ma.ynmo.cdn.controller;
 import lombok.AllArgsConstructor;
 import ma.ynmo.cdn.model.FileData;
 import ma.ynmo.cdn.services.FileUploadServices;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.util.UUID;
 
 @RestController
@@ -24,9 +26,10 @@ public class StoreUploadFile {
     public Mono<FileData> uploadFile(
             @RequestPart("file") Mono<FilePart> multipartFile,
             @PathVariable("subID") UUID subID,
-            @PathVariable("ownerID") UUID ownerID)
+            @PathVariable("ownerID") UUID ownerID,
+            @Value("${input-directory:${HOME}/Desktop/in}") File in)
     {
-        return fileUploadService.storeuploadImage(multipartFile, ownerID, subID);
+        return fileUploadService.storeuploadImage(multipartFile, ownerID, subID, in);
     }
 
 }
