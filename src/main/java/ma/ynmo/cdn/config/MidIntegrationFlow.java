@@ -83,8 +83,6 @@ public class MidIntegrationFlow {
                             ".zip";
                         }
                         ))
-
-
                 .get();
 
         // here is an example of ftp implimentation but we want to keep headers so

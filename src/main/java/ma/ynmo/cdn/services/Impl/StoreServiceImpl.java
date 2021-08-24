@@ -26,6 +26,10 @@ public class StoreServiceImpl implements StoreService {
                         Mono.error(new EntityNotFoundException(
                                 String.format("no sotre with id %s",
                                         fileData.getSubID()))))
+                .flatMap(store -> {
+                    store.setCurrentSize(store.getCurrentSize() + fileData.getSize());
+                    return storeRepository.save(store);
+                })
                         .flatMap( store ->
                                 checkSizeAndGenerateURl(store, fileData));
     }
@@ -39,9 +43,12 @@ public class StoreServiceImpl implements StoreService {
                 MediaType.IMAGE_PNG_VALUE);
         return Mono.just(fileData)
                 .flatMap(fi->{
-                    if (store.getCurrentSize() + fileData.getSize() > store.getMaxSize())
+                    if (store.getCurrentSize() > store.getMaxSize()) {
+                        store.setCurrentSize(store.getCurrentSize() - fileData.getSize());
+                        storeRepository.save(store).subscribe(System.out::println);
                         return Mono.error(new IllegalArgumentException("no more space"));
-                    log.info(fileData.getType());
+                    }
+                        log.info(fileData.getType());
                  //   if (!types.contains(fileData.getType()))
                    //     return Mono.error(new IllegalArgumentException("invalid image Type"));
                     fileData.setUrl(String.format("clients/%s/stores/%s/images/",store.getOwnerID(),store.getSubID()));

@@ -2,6 +2,7 @@ package ma.ynmo.cdn.config;
 
 import ma.ynmo.cdn.model.FileStatus;
 import ma.ynmo.cdn.services.FileDataService;
+import ma.ynmo.cdn.services.UploadFileService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ImageBanner;
 import org.springframework.context.annotation.Bean;
@@ -41,8 +42,9 @@ public class OutIntegrationFlow {
     }
     @Bean
     IntegrationFlow outputFile(@Value("${input-directory:${HOME}/Desktop/out}") File out,
-                          @Value("${input-directory:${HOME}/Desktop/final}") File fin,
-                          UnZipTransformer unZipTransformer, FileDataService fileDataService, Environment environment) {
+                               @Value("${input-directory:${HOME}/Desktop/final}") File fin,
+                               UnZipTransformer unZipTransformer, FileDataService fileDataService,
+                               UploadFileService uploadFileService, Environment environment) {
         // this transoform is just for testing it tranfers image to string
         GenericTransformer<File, Message<String>> fileStringGenericTransformer = (File source) -> {
 
@@ -92,6 +94,10 @@ public class OutIntegrationFlow {
               .transform(File.class, transformer)
                 .transform(unZipTransformer)
                 .split()
+//                .handle(message -> {
+//                    uploadFileService.uploadFile((File)message.getPayload(),null)
+//                            .subscribe();// send event through fileStatus channel
+//                })
                 // we gonna change this transformer or delete it it just for testing
                 .transform(File.class, fileStringGenericTransformer)
                 // we gonna add aws handler here
