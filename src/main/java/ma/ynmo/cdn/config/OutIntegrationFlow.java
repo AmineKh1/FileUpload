@@ -94,22 +94,26 @@ public class OutIntegrationFlow {
               .transform(File.class, transformer)
                 .transform(unZipTransformer)
                 .split()
-//                .handle(message -> {
-//                    uploadFileService.uploadFile((File)message.getPayload(),null)
-//                            .subscribe();// send event through fileStatus channel
-//                })
+                .handle(message -> {
+                    try {
+                        uploadFileService.uploadFile((File)message.getPayload())
+                                .subscribe(System.out::println);// send event through fileStatus channel
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                })
                 // we gonna change this transformer or delete it it just for testing
-                .transform(File.class, fileStringGenericTransformer)
+              //  .transform(File.class, fileStringGenericTransformer)
                 // we gonna add aws handler here
-                .handle(Files.outboundAdapter(fin)
-                        .autoCreateDirectory(true)
-                        .fileNameGenerator(
-                                message ->{
-                                    System.out.println(message);
-                                  //  return UUID.randomUUID() + ".txt";
-                                   return message.getHeaders().get(FileHeaders.FILENAME).toString().split("\\.")[0] + ".txt";
-                                }
-                        ))
+//                .handle(Files.outboundAdapter(fin)
+//                        .autoCreateDirectory(true)
+//                        .fileNameGenerator(
+//                                message ->{
+//                                    System.out.println(message);
+//                                  //  return UUID.randomUUID() + ".txt";
+//                                   return message.getHeaders().get(FileHeaders.FILENAME).toString().split("\\.")[0] + ".txt";
+//                                }
+//                        ))
                 .get();
 
         // here is an example of ftp implimentation but we want to keep headers so

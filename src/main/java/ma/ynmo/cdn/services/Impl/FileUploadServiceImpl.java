@@ -81,6 +81,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
     {
         // generate file url later
         return Mono.just(new FileData(id, file.filename(),ownerID,
+                null,
                 subID,
                 null,
                 Objects.requireNonNull(file.headers().getContentType()).getType(),

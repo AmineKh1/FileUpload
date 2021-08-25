@@ -22,6 +22,7 @@ public class FileData {
     private Long id;
     private String baseName;
     private UUID ownerId;
+    private String fileKey;
     private UUID subID;
     private String url;
     private String type;

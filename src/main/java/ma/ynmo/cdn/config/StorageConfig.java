@@ -4,7 +4,10 @@ package ma.ynmo.cdn.config;
 import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -17,8 +20,8 @@ import software.amazon.awssdk.utils.StringUtils;
 
 import java.time.Duration;
 
-@Configurable
-@EnableAutoConfiguration
+@Configuration
+//@EnableConfigurationProperties(S3ClientConfigurarionProperties.class)
 public class StorageConfig {
 
     @Bean
@@ -34,10 +37,10 @@ public class StorageConfig {
         }
     }
     @Bean
-    public S3AsyncClient s3client(S3ClientConfigurarionProperties s3props,
-                                  AwsCredentialsProvider credentialsProvider) {
+    @Order(-2)
+    public S3AsyncClient s3client(AwsCredentialsProvider credentialsProvider) {
         SdkAsyncHttpClient httpClient = NettyNioAsyncHttpClient.builder()
-                .writeTimeout(Duration.ZERO)
+                  .writeTimeout(Duration.ZERO)
                 .maxConcurrency(64)
                 .build();
         S3Configuration serviceConfiguration = S3Configuration.builder()
@@ -48,9 +51,8 @@ public class StorageConfig {
                 .credentialsProvider(credentialsProvider)
                 .serviceConfiguration(serviceConfiguration);
 
-//        if (s3props.getEndpoint() != null) {
-//            b = b.endpointOverride(s3props.getEndpoint());
-//        }
+
         return b.build();
     }
+
 }
