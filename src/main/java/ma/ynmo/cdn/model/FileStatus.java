@@ -5,6 +5,8 @@ import java.util.stream.Stream;
 
 public enum FileStatus {
     PENDING("pending"),
+    PROCESSING("processing"),
+    VERIFIYING("verifiying"),
     COMPLETED("completed"),
     FAILED("failed"),
     CANCLED("cancled"),

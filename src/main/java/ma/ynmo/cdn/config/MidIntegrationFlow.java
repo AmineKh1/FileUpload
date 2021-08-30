@@ -1,29 +1,27 @@
 package ma.ynmo.cdn.config;
 
+import ma.ynmo.cdn.model.FileData;
+import ma.ynmo.cdn.model.FileStatus;
 import ma.ynmo.cdn.services.FileDataService;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ImageBanner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.integration.annotation.Transformer;
+import org.springframework.integration.amqp.dsl.Amqp;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
-import org.springframework.integration.file.FileHeaders;
+import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.file.dsl.Files;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.integration.transformer.GenericTransformer;
 import org.springframework.integration.zip.transformer.ZipResultType;
 import org.springframework.integration.zip.transformer.ZipTransformer;
 import org.springframework.messaging.Message;
-import org.springframework.util.ReflectionUtils;
+import org.springframework.messaging.MessageChannel;
 import reactor.core.publisher.Mono;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.zip.Deflater;
 
 @Configuration
@@ -34,28 +32,51 @@ public class MidIntegrationFlow {
         ZipTransformer zipTransformer = new ZipTransformer();
         zipTransformer.setCompressionLevel(Deflater.BEST_COMPRESSION);
         zipTransformer.setZipResultType(ZipResultType.BYTE_ARRAY);
+        zipTransformer.setDeleteFiles(true);
         return zipTransformer;
+    }
+
+
+    @Bean
+    IntegrationFlow channelIntegration(AmqpTemplate amqpTemplate,
+                                       @Value("${application.amqp.processImage.routingKey:processImageRoutingKey}") String routingKey,
+                                       @Value("${application.amqp.processImage.extchange:cdnExtchange}") String exchange)
+    {
+        return IntegrationFlows.from(this.FileChannel()).
+             handle(
+                     Amqp.outboundAdapter(amqpTemplate)
+                             .exchangeName(exchange)
+                             .routingKey(routingKey)
+             )
+                .get();
     }
 
     // to test workflow just move an image to in directory but change the name to saved file id.png
     // it will be always 0 in testing
     // cp ./elb.png ./in/0.png
     @Bean
-    IntegrationFlow files(@Value("${input-directory:${HOME}/Desktop/in}") File in ,
-                          @Value("${input-directory:${HOME}/Desktop/out}") File out,
-                          ZipTransformer zipTransformer, FileDataService fileDataService) {
+    IntegrationFlow files(ZipTransformer zipTransformer,
+                          FileDataService fileDataService,
+                          ConnectionFactory connectionFactory,
+                          @Value("${application.amqp.cdn.queue}") String queue
+    ) {
 
-        GenericTransformer<File, Message<File>> messageGenericTransformer = (File source) -> {
+        GenericTransformer<Message<File>, Message<File>> messageGenericTransformer = ( source) -> {
             try {
-                return fileDataService.findByID(Long.valueOf(source.getName().split("\\.")[0]))
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("no such file")))
-                        .flatMap(fileData -> Mono.just(
-                                MessageBuilder.withPayload(source)
-                                       // .setHeader(FileHeaders.FILENAME, fileData.getBaseName())
-                                        .setHeader("AbsolutePath", source.getAbsolutePath())
-                                        .setHeader(FileHeaders.FILENAME, fileData.getBaseName())
-                                        .setHeader("realFileName", source.getAbsoluteFile().getName())
-                                        .build())).flux().blockFirst();
+                   FileData fileData= (FileData) source.getHeaders().get("fileData");
+                  return  fileDataService.findByID(fileData.getId())
+                          .flatMap(fd->{
+                              if (!fd.getStatus().equals(FileStatus.PENDING))
+                                return  Mono.empty();
+                              fd.setStatus(FileStatus.PROCESSING);
+                              return fileDataService.save(fd);
+                          })
+                          .switchIfEmpty(Mono.error(new IllegalStateException("file allready in processing")))
+                          .flatMap(fd-> Mono.just(MessageBuilder.withPayload(source.getPayload())
+                                    .setHeader("fileData", fd)
+                                  .build()))
+                          .flux().blockFirst();
+
             }catch (Exception e)
             {
                 e.printStackTrace();
@@ -65,34 +86,25 @@ public class MidIntegrationFlow {
 
 
         return IntegrationFlows
-                .from(Files.inboundAdapter(in).autoCreateDirectory(true).preventDuplicates(true),
-                        poller -> poller.poller(pm -> pm.fixedRate(1000)))
-             .transform(File.class, messageGenericTransformer)
+//                .from(Files.inboundAdapter(in).autoCreateDirectory(true)
+//                                .preventDuplicates(true),
+//                        poller -> poller.poller(pm -> pm.fixedRate(1000)))
+                .from(Amqp.inboundAdapter(connectionFactory,queue))
+             .transform(messageGenericTransformer)
              .transform(zipTransformer)
-                // we gonna change this one to kafka  handler to send zipped file to other service
-                .handle(Files.outboundAdapter(out)
-                        .autoCreateDirectory(true)
-                        .fileNameGenerator(
-                        message ->{
-                            System.out.println(message);
-                            System.out.println(message.getHeaders().get("AbsolutePath"));
-                            new File((String) message.getHeaders().get("AbsolutePath")).delete();
-                            return( (String)message.getHeaders().get("realFileName")).split("\\.")[0]
-                                    +"_" +
-                                    ( (String)message.getHeaders().get(FileHeaders.FILENAME)).split("\\.")[0] +
-                            ".zip";
-                        }
-                        ))
+                .channel(this.FileChannel())
+                .handle(System.out::println)
                 .get();
+    }
 
-        // here is an example of ftp implimentation but we want to keep headers so
-
-//                .handle(Ftp.outboundAdapter(ftpSessionFactory)
-//                        .remoteDirectory(remoteDirectory)
-//                        .fileNameGenerator(message -> {
-//                            Object o = message.getHeaders().get(FileHeaders.FILENAME);
-//                            String fileName = String.class.cast(o);
-//                            return fileName.split("\\.")[0]+".txt";
-//                        })).get();
+    @Bean
+    MessageChannel FileChannel()
+    {
+        return MessageChannels.publishSubscribe().get();
+    }
+    @Bean
+    MessageChannel midChannel()
+    {
+        return MessageChannels.publishSubscribe().get();
     }
 }
