@@ -22,7 +22,7 @@ public class StoreUploadFileController {
 private final MessageChannel messageChannel;
 
     public StoreUploadFileController(FileUploadServices fileUploadService,
-                                     @Qualifier("midChannel")   MessageChannel messageChannel) {
+                                     @Qualifier("imageToProccessChannel")   MessageChannel messageChannel) {
         this.fileUploadService = fileUploadService;
         this.messageChannel = messageChannel;
     }
@@ -36,18 +36,14 @@ private final MessageChannel messageChannel;
             @PathVariable("ownerID") UUID ownerID,
             @RequestHeader("Content-Length") long contentLength,
             @RequestHeader("Content-Type") String content_type,
-            @Value("${temp_dir:/tmp}") File in
-        ,
-            @Value("${application.amqp.processImage.extchange:cdnExtchange}") String exchange,
-            @Value("${application.amqp.cdn.queue:cdnRoutingKey}") String queue)
+            @Value("${temp_dir:/tmp}") File in)
     {
         System.out.println(content_type);
         return fileUploadService.storeuploadImage(multipartFile,
                 ownerID, subID,
                 contentLength, in,
-                messageChannel,
-                exchange,
-                queue);
+                messageChannel
+                );
     }
 
 }

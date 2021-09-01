@@ -1,4 +1,4 @@
-package ma.ynmo.cdn.config;
+package ma.ynmo.cdn.config.amqp;
 
 import org.springframework.amqp.core.*;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -7,21 +7,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class MidAmqpConfiguration {
-
-
-
+public class ImageToS3AmqpConfiguration {
     @Bean
-    Queue midQueue(@Value("${application.amqp.cdn.queue:midQueue}")String queue)
+    Queue imageToS3Queue(@Value("${application.cdn.image_to_s3.queue:image_to_s3}")String queue)
     {
         return QueueBuilder.durable(queue).build();
     }
 
     @Bean
-    Binding midBinding(
-            @Qualifier("midQueue") Queue queue,
+    Binding imageToS3Binding(
+            @Qualifier("imageToS3Queue") Queue queue,
             @Qualifier("cdnExchange") Exchange exchange,
-            @Value("${application.amqp.cdn.routingKey:cdnRoutingKey}")String routingKey)
+            @Value("${application.cdn.image_to_s3.routingKey:image_to_s3_routing_key}")String routingKey)
     {
 
         return BindingBuilder.bind(queue).to(exchange)

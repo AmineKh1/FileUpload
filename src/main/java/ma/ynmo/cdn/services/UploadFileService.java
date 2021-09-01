@@ -29,16 +29,16 @@ public class UploadFileService {
     private final FileDataService fileDataService;
     private final S3AsyncClient s3Client;
 
-    public Mono<FileData> uploadFile(File file) throws IOException {
+    public Mono<FileData> uploadFile(FileData f,File file) throws IOException {
 
-        var id  =  Long.valueOf(file.getName().split("\\.")[0]);
-        return fileDataService.findByID(id)
+//        var id  =  Long.valueOf(file.getName().split("\\.")[0]);
+        return fileDataService.findByID(f.getId())
                         .flatMap(fileData->
                        Mono.fromFuture(uploadToS3(fileData,file)))
                 .flatMap(putObjectResponse ->
                 {
                     System.out.println(putObjectResponse);
-                    return fileDataService.findByID(id);
+                    return fileDataService.findByID(f.getId());
                 });
     }
 

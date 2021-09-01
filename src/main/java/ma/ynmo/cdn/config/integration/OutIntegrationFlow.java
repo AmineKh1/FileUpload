@@ -1,16 +1,20 @@
-package ma.ynmo.cdn.config;
+package ma.ynmo.cdn.config.integration;
 
+import ma.ynmo.cdn.model.FileData;
 import ma.ynmo.cdn.model.FileStatus;
 import ma.ynmo.cdn.services.FileDataService;
 import ma.ynmo.cdn.services.UploadFileService;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ImageBanner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.integration.amqp.dsl.Amqp;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
+import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.file.dsl.Files;
 import org.springframework.integration.support.MessageBuilder;
@@ -19,6 +23,7 @@ import org.springframework.integration.zip.transformer.UnZipTransformer;
 import org.springframework.integration.zip.transformer.ZipResultType;
 import org.springframework.integration.zip.transformer.ZipTransformer;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.util.ReflectionUtils;
 import reactor.core.publisher.Mono;
 
@@ -34,69 +39,53 @@ public class OutIntegrationFlow {
     @Bean
     public UnZipTransformer unZipTransformer() {
         UnZipTransformer unZipTransformer = new UnZipTransformer();
-        unZipTransformer.setExpectSingleResult(true);
+//        unZipTransformer.setExpectSingleResult(true);
         unZipTransformer.setZipResultType(ZipResultType.FILE);
         unZipTransformer.setWorkDirectory(new File("/tmp"));
         unZipTransformer.setDeleteFiles(true);
         return unZipTransformer;
     }
     @Bean
-    IntegrationFlow outputFile(@Value("${input-directory:${HOME}/Desktop/out}") File out,
-                               @Value("${input-directory:${HOME}/Desktop/final}") File fin,
-                               UnZipTransformer unZipTransformer, FileDataService fileDataService,
-                               UploadFileService uploadFileService, Environment environment) {
-        // this transoform is just for testing it tranfers image to string
-        GenericTransformer<File, Message<String>> fileStringGenericTransformer = (File source) -> {
+    IntegrationFlow outputFile(
+                               UnZipTransformer unZipTransformer,
+                               FileDataService fileDataService,
+                               ConnectionFactory connectionFactory,
+                               UploadFileService uploadFileService,
+           @Value("${application.cdn.files_to_s3.queue:files_to_s3}") String queue) {
 
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream printStream = new PrintStream(baos)) {
-                ImageBanner imageBanner = new ImageBanner(new FileSystemResource(source));
-                imageBanner.printBanner(environment, getClass(), printStream);
-
-
-                return MessageBuilder.withPayload(baos.toString())
-                        .setHeader(FileHeaders.FILENAME, source.getAbsoluteFile().getName())
-                        .build();
-            } catch (IOException e) {
-                ReflectionUtils.rethrowRuntimeException(e);
-            }
-            return null;
-        };
-        GenericTransformer<File, Message<File>> transformer = (File source) -> {
-            try {
-                return fileDataService.findByID(Long.valueOf(source.getName().split("_")[0]))
-                        .switchIfEmpty(Mono.error(new IllegalArgumentException("no such file")))
-                        .flatMap(fileData ->
-                        {
-                            fileData.setStatus(FileStatus.UPLOADING);
-                            return fileDataService.save(fileData);
-                        })
-                        .flatMap(fileData -> Mono.just(
-                                MessageBuilder.withPayload(source)
-                                        .setHeader(FileHeaders.FILENAME,  fileData.getBaseName()) //source.getAbsoluteFile().getName() )
-
-                                        // set custom  varialble for aws integration
-                                        .setHeader("awsUrl", fileData.getUrl())
-                                        .setHeader("realFileName", fileData.getBaseName())
-                                        .build())).flux().blockFirst();
-            }catch (Exception e)
-            {
-                e.printStackTrace();
-                return null;
-            }
-        };
+//        GenericTransformer<File, Message<File>> transformer = (File source) -> {
+//            try {
+//                return fileDataService.findByID(Long.valueOf(source.getName().split("_")[0]))
+//                        .switchIfEmpty(Mono.error(new IllegalArgumentException("no such file")))
+//                        .flatMap(fileData ->
+//                        {
+//                            fileData.setStatus(FileStatus.UPLOADING);
+//                            return fileDataService.save(fileData);
+//                        })
+//                        .flatMap(fileData -> Mono.just(
+//                                MessageBuilder.withPayload(source)
+//                                        .setHeader(FileHeaders.FILENAME,  fileData.getBaseName()) //source.getAbsoluteFile().getName() )
+//
+//                                        // set custom  varialble for aws integration
+//                                        .setHeader("awsUrl", fileData.getUrl())
+//                                        .setHeader("realFileName", fileData.getBaseName())
+//                                        .build())).flux().blockFirst();
+//            }catch (Exception e)
+//            {
+//                e.printStackTrace();
+//                return null;
+//            }
+//        };
 
 
         return IntegrationFlows
-                .from(Files.inboundAdapter(out)
-                                .autoCreateDirectory(true)
-                        .preventDuplicates(true),
-                        poller -> poller.poller(pm -> pm.fixedRate(1000)))
-              .transform(File.class, transformer)
+                .from(Amqp.inboundAdapter(connectionFactory, queue))
+//                .transform(File.class, transformer)
                 .transform(unZipTransformer)
-                .split()
+//                .split()
                 .handle(message -> {
                     try {
-                        uploadFileService.uploadFile((File)message.getPayload())
+                        uploadFileService.uploadFile((FileData) message.getHeaders().get("fileData"),(File)message.getPayload())
                                 .subscribe(System.out::println);// send event through fileStatus channel
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -126,4 +115,10 @@ public class OutIntegrationFlow {
 //                            return fileName.split("\\.")[0]+".txt";
 //                        })).get();
     }
+
+//    @Bean
+//    MessageChannel filesToS3Channel()
+//    {
+//      return   MessageChannels.publishSubscribe().get();
+//    }
 }

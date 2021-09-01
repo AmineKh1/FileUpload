@@ -1,4 +1,4 @@
-package ma.ynmo.cdn.config;
+package ma.ynmo.cdn.config.amqp;
 
 
 import org.springframework.amqp.core.*;
@@ -8,25 +8,25 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class ProcessImageAmqpConfiguration {
+public class ImageToProccessAmqpConfig {
 
     @Bean
-    Exchange cdnExchange(@Value("${application.amqp.processImage.extchange:cdnExtchange}") String exchange)
+    Exchange cdnExchange(@Value("${application.amqp.extchange:cdnExchange}") String exchange)
     {
 
         return ExchangeBuilder.directExchange(exchange).durable(true).build();
     }
 
     @Bean
-    Queue proccessQueue(@Value("${application.amqp.processImage.queue:proccessImageQueue}")String queue)
+    Queue imageToProcessQueue(@Value("${application.cdn.image_to_process.queue:image_to_process}")String queue)
     {
         return QueueBuilder.durable(queue).build();
     }
     @Bean
-    Binding binding(
-            @Qualifier("proccessQueue") Queue queue,
+    Binding imageToProcessBinding(
+            @Qualifier("imageToProcessQueue") Queue queue,
             @Qualifier("cdnExchange") Exchange exchange,
-            @Value("${application.amqp.processImage.routingKey:proccessImageRoutingKey}")String routingKey)
+            @Value("${application.cdn.image_to_process.routingKey:image_to_process_routing_key}")String routingKey)
     {
 
         return BindingBuilder.bind(queue).to(exchange)

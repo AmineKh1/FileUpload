@@ -45,9 +45,8 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                            UUID subID,
                                            long contentLength,
                                            File in,
-                                           MessageChannel template,
-                                           String exchange,
-                                           String queue){
+                                           MessageChannel template
+                                           ){
         return file
                 .flatMap(mfile ->
                         FileUploadServiceImpl
@@ -56,18 +55,15 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                         sequenceGeneratorService,
                                         contentLength,
                                         in,
-                                        template,
-                                        exchange,
-                                        queue))
+                                        template))
                 .flatMap(fileDataService::save);
     }
 
    // rename file with file data id
     public static void TransaferToInputDir(FileData fileData, FilePart file,
                                            File in,
-                                           MessageChannel messageChannel,
-                                           String exchange,
-                                           String queue) {
+                                           MessageChannel messageChannel
+                                          ) {
         var filename = new StringBuilder();
         filename.append(fileData.getId());
         filename.append(".");
@@ -76,7 +72,8 @@ public class FileUploadServiceImpl implements FileUploadServices {
       File to = new File(in.getAbsolutePath() +"/" + filename);
       file.transferTo(to)
               .doOnEach(unused -> {
-               messageChannel.send(
+               messageChannel
+                       .send(
                        MessageBuilder
                        .withPayload(to)
                                .setHeader("fileData",fileData).build());
@@ -93,9 +90,8 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                              SequenceGeneratorService sequenceGeneratorService ,
                                              long contentLength,
                                              File in,
-                                             MessageChannel template,
-                                             String exchange,
-                                             String routingKey)
+                                             MessageChannel template
+                                            )
     {
         return sequenceGeneratorService.generateNewId(FileData.FILE_DATA_SEQ)
                 .flatMap(id ->FileUploadServiceImpl
@@ -104,9 +100,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
                 .doOnSuccess(fileData -> FileUploadServiceImpl.TransaferToInputDir(fileData,
                         file,
                         in,
-                        template,
-                        exchange,
-                        routingKey));
+                        template));
     }
 
     private static Mono<FileData> createNewFileData(

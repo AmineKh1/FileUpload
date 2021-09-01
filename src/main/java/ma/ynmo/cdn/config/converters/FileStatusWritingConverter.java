@@ -1,4 +1,4 @@
-package ma.ynmo.cdn.config;
+package ma.ynmo.cdn.config.converters;
 
 import ma.ynmo.cdn.model.FileStatus;
 import org.springframework.core.convert.converter.Converter;

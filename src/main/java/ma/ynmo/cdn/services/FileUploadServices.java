@@ -16,6 +16,6 @@ import java.util.UUID;
 public interface FileUploadServices {
     Mono<FileData> storeuploadImage(Mono<FilePart> file, UUID ownerID,
                                     UUID subID,long contentLength,
-                                    File in, MessageChannel template,
-                                    String exchange, String queue);
+                                    File in, MessageChannel template
+                                 );
 }
