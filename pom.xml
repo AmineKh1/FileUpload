@@ -118,11 +118,7 @@
             <artifactId>spring-security-core</artifactId>
             <version>5.4.6</version>
         </dependency>
-		<dependency>
-			<groupId>ma.ynmo</groupId>
-			<artifactId>cdn</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
+
 	</dependencies>
 
 	<build>

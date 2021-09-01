@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.integration.amqp.dsl.Amqp;
 import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -44,7 +45,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                            UUID subID,
                                            long contentLength,
                                            File in,
-                                           AmqpTemplate template,
+                                           MessageChannel template,
                                            String exchange,
                                            String queue){
         return file
@@ -64,7 +65,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
    // rename file with file data id
     public static void TransaferToInputDir(FileData fileData, FilePart file,
                                            File in,
-                                           AmqpTemplate template,
+                                           MessageChannel messageChannel,
                                            String exchange,
                                            String queue) {
         var filename = new StringBuilder();
@@ -75,12 +76,10 @@ public class FileUploadServiceImpl implements FileUploadServices {
       File to = new File(in.getAbsolutePath() +"/" + filename);
       file.transferTo(to)
               .doOnEach(unused -> {
-               log.info("before Sending");
-               template.send(
-                       exchange,
-                       "cdnRoutingKey",
-                        new Message(to, Map.of("fileData", fileData))
-               );
+               messageChannel.send(
+                       MessageBuilder
+                       .withPayload(to)
+                               .setHeader("fileData",fileData).build());
 
       }).subscribe();
     }
@@ -94,7 +93,7 @@ public class FileUploadServiceImpl implements FileUploadServices {
                                              SequenceGeneratorService sequenceGeneratorService ,
                                              long contentLength,
                                              File in,
-                                             AmqpTemplate template,
+                                             MessageChannel template,
                                              String exchange,
                                              String routingKey)
     {

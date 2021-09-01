@@ -1,5 +1,6 @@
 package ma.ynmo.cdn.config;
 
+import lombok.extern.slf4j.Slf4j;
 import ma.ynmo.cdn.model.FileData;
 import ma.ynmo.cdn.model.FileStatus;
 import ma.ynmo.cdn.services.FileDataService;
@@ -25,6 +26,7 @@ import java.io.File;
 import java.util.zip.Deflater;
 
 @Configuration
+@Slf4j
 public class MidIntegrationFlow {
     @Bean
 //    @Transformer(inputChannel = "input", outputChannel = "output")
@@ -50,6 +52,20 @@ public class MidIntegrationFlow {
              )
                 .get();
     }
+    @Bean
+    IntegrationFlow midChannelIntegration(AmqpTemplate amqpTemplate,
+                                          @Value("${application.amqp.cdn.queue}") String queue,
+                                       @Value("${application.amqp.cdn.routingKey}") String routingKey,
+                                       @Value("${application.amqp.processImage.extchange}") String exchange)
+    {
+        return IntegrationFlows.from(this.midChannel(queue)).
+                handle(
+                        Amqp.outboundAdapter(amqpTemplate)
+                                .exchangeName(exchange)
+                                .routingKey(routingKey)
+                )
+                .get();
+    }
 
     // to test workflow just move an image to in directory but change the name to saved file id.png
     // it will be always 0 in testing
@@ -63,6 +79,7 @@ public class MidIntegrationFlow {
 
         GenericTransformer<Message<File>, Message<File>> messageGenericTransformer = ( source) -> {
             try {
+                log.info("here i start");
                    FileData fileData= (FileData) source.getHeaders().get("fileData");
                   return  fileDataService.findByID(fileData.getId())
                           .flatMap(fd->{
@@ -89,10 +106,11 @@ public class MidIntegrationFlow {
 //                .from(Files.inboundAdapter(in).autoCreateDirectory(true)
 //                                .preventDuplicates(true),
 //                        poller -> poller.poller(pm -> pm.fixedRate(1000)))
-                .from(Amqp.inboundAdapter(connectionFactory,queue))
-             .transform(messageGenericTransformer)
-             .transform(zipTransformer)
-                .channel(this.FileChannel())
+                .from(Amqp.inboundAdapter(connectionFactory, queue))
+
+               // .transform(messageGenericTransformer)
+              //  .transform(zipTransformer)
+                //.channel(this.FileChannel())
                 .handle(System.out::println)
                 .get();
     }
@@ -102,9 +120,11 @@ public class MidIntegrationFlow {
     {
         return MessageChannels.publishSubscribe().get();
     }
+
     @Bean
-    MessageChannel midChannel()
+    MessageChannel midChannel(@Value("${application.amqp.cdn.queue}") String queue)
     {
-        return MessageChannels.publishSubscribe().get();
+
+        return MessageChannels.publishSubscribe(queue).get();
     }
 }
