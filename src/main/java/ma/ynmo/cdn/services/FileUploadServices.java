@@ -1,5 +1,6 @@
 package ma.ynmo.cdn.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ma.ynmo.cdn.model.FileData;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
@@ -14,8 +15,10 @@ import java.nio.channels.MulticastChannel;
 import java.util.UUID;
 
 public interface FileUploadServices {
-    Mono<FileData> storeuploadImage(Mono<FilePart> file, UUID ownerID,
-                                    UUID subID,long contentLength,
-                                    File in, MessageChannel template
+    Mono<FileData> storeuploadFile(Mono<FilePart> file, UUID ownerID,
+                                   UUID subID, long contentLength,
+                                   File in,   MessageChannel imageChannel,
+                                   MessageChannel filesChannel,
+                                   ObjectMapper objectMapper
                                  );
 }

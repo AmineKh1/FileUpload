@@ -3,6 +3,7 @@ package ma.ynmo.cdn.services;
 import lombok.AllArgsConstructor;
 import ma.ynmo.cdn.config.S3ClientConfigurarionProperties;
 import ma.ynmo.cdn.model.FileData;
+import ma.ynmo.cdn.model.FileStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -18,8 +19,10 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 
 @Service
@@ -29,37 +32,54 @@ public class UploadFileService {
     private final FileDataService fileDataService;
     private final S3AsyncClient s3Client;
 
-    public Mono<FileData> uploadFile(FileData f,File file) throws IOException {
+    public Mono<FileData> uploadFile(FileData f, TreeMap<String,?> map) throws IOException {
 
 //        var id  =  Long.valueOf(file.getName().split("\\.")[0]);
-        return fileDataService.findByID(f.getId())
-                        .flatMap(fileData->
-                       Mono.fromFuture(uploadToS3(fileData,file)))
-                .flatMap(putObjectResponse ->
-                {
-                    System.out.println(putObjectResponse);
-                    return fileDataService.findByID(f.getId());
-                });
+
+         return Flux.fromStream( map.entrySet().stream())
+                 .flatMap(stringEntry ->
+                         {
+                             var n = f.getBaseName().split("\\.")[0] + "_" + stringEntry.getKey()
+                                     .split("_")[1];
+                             f.getNames().add(n);
+                       return    Mono.fromFuture(uploadToS3(n,f,(byte[]) stringEntry.getValue()));
+                         })
+                 .last()
+                 .flatMap(o ->
+                         {
+                             f.setStatus(FileStatus.COMPLETED);
+                           return   fileDataService.save(f);
+                         }
+                 );
+
+//
+//                        .flatMap(fileData->
+//                       Mono.fromFuture(uploadToS3(fileData,arr)))
+//                .flatMap(putObjectResponse ->
+//                {
+//                    System.out.println(putObjectResponse);
+//                    return fileDataService.findByID(f.getId());
+//                });
     }
 
     public CompletableFuture<PutObjectResponse> uploadToS3(
+                                                           String tag,
                                                            FileData fileData,
-                                                           File file) {
+                                                           byte[] file) {
 
        var  mediaType = fileData.getType();
         Map<String, String> metadata = new HashMap<String, String>();
-        metadata.put("filename", file.getName());
-        metadata.put("path", fileData.getUrl());
+
     return    s3Client
                 .putObject(PutObjectRequest.builder()
                                 .bucket(s3Properties.getBucket())
                         // the problem came out from  the content-length
                         // which is not equal to the  putObjectRequeset size
-                                 .metadata(metadata)
-                                .key(fileData.getUrl()+ file.getName())
+                           //      .metadata(metadata)
+                                .key(fileData.getUrl()+ tag)
                                 .contentType(mediaType)
                                 .build(),
-                        file.toPath() // the problem was here
+                        AsyncRequestBody.fromBytes(file) // the problem was here
                         );
     }
 

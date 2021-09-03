@@ -1,5 +1,6 @@
 package ma.ynmo.cdn.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ma.ynmo.cdn.model.FileData;
 import ma.ynmo.cdn.services.FileUploadServices;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,13 +19,20 @@ import java.util.UUID;
 public class StoreUploadFileController {
 
     private final FileUploadServices fileUploadService;
+    private  final ObjectMapper objectMapper;
 
 private final MessageChannel messageChannel;
 
+ private  final    MessageChannel filesChannel;
+
     public StoreUploadFileController(FileUploadServices fileUploadService,
-                                     @Qualifier("imageToProccessChannel")   MessageChannel messageChannel) {
+                                     ObjectMapper objectMapper,
+                                     @Qualifier("imageToProccessChannel") MessageChannel messageChannel,
+                                    @Qualifier("filesToS3Channel") MessageChannel filesChannel) {
         this.fileUploadService = fileUploadService;
+        this.objectMapper = objectMapper;
         this.messageChannel = messageChannel;
+        this.filesChannel = filesChannel;
     }
 
     // for multiple files use Flux<PartFile>
@@ -38,11 +46,13 @@ private final MessageChannel messageChannel;
             @RequestHeader("Content-Type") String content_type,
             @Value("${temp_dir:/tmp}") File in)
     {
-        System.out.println(content_type);
-        return fileUploadService.storeuploadImage(multipartFile,
+        return fileUploadService.storeuploadFile(multipartFile,
                 ownerID, subID,
                 contentLength, in,
-                messageChannel
+                messageChannel,
+                filesChannel,
+
+                objectMapper
                 );
     }
 

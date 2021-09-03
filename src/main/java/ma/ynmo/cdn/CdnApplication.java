@@ -34,7 +34,7 @@ public class CdnApplication {
 		return args -> {
 			storeService.save(new Store(UUID.fromString("3227cacd-ee25-4160-9cd1-f3e286a56c15"),
 					UUID.fromString("3227cacd-ee25-4160-9cd1-f3e286a56c14"),0L,
-					112030L)).subscribe(System.out::println);
+					111123123212030L)).subscribe(System.out::println);
 //			fileDataService.save(new FileData(0L,"img.png", UUID.randomUUID(), UUID.randomUUID(),
 //					"sdf", "png", FileStatus.PENDING ,1L, LocalDateTime.now())).subscribe();
 //

@@ -21,6 +21,7 @@ public class StoreServiceImpl implements StoreService {
     private final StoreRepository storeRepository;
     @Override
     public Mono<FileData> verifyFile(FileData fileData) {
+        System.out.println(fileData);
         return findStoreBySubID(fileData.getSubID())
                 .switchIfEmpty(
                         Mono.error(new EntityNotFoundException(
@@ -38,22 +39,25 @@ public class StoreServiceImpl implements StoreService {
     // set filename to RandmonUUID_originalFilename
     private Mono<FileData> checkSizeAndGenerateURl(Store store, FileData fileData)
     {
-        var types = List.of(MediaType.IMAGE_GIF_VALUE,
-                MediaType.IMAGE_JPEG_VALUE,
-                MediaType.IMAGE_PNG_VALUE);
+
         return Mono.just(fileData)
                 .flatMap(fi->{
                     if (store.getCurrentSize() > store.getMaxSize()) {
-                        store.setCurrentSize(store.getCurrentSize() - fileData.getSize());
+                        store.setCurrentSize(store.getCurrentSize() - fi.getSize());
                         storeRepository.save(store).subscribe(System.out::println);
                         return Mono.error(new IllegalArgumentException("no more space"));
                     }
                         log.info(fileData.getType());
                  //   if (!types.contains(fileData.getType()))
                    //     return Mono.error(new IllegalArgumentException("invalid image Type"));
-                    fileData.setUrl(String.format("clients/%s/stores/%s/images/",store.getOwnerID(),store.getSubID()));
-                    fileData.setBaseName(String.format("%s_%s", UUID.randomUUID(), fileData.getBaseName()));
-                    return Mono.just(fileData);
+                    if (fi.isImage())
+                        fi.setUrl(String.format("clients/%s/stores/%s/images/", store.getOwnerID(), store.getSubID()));
+                     else
+                        fi.setUrl(String.format("clients/%s/stores/%s/files/", store.getOwnerID(), store.getSubID()));
+
+
+                    fi.setBaseName(String.format("%s.%s", UUID.randomUUID(),fi.getExtension()));
+                    return Mono.just(fi);
                 });
     }
 

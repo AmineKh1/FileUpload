@@ -13,7 +13,6 @@ public class ImageToProccessAmqpConfig {
     @Bean
     Exchange cdnExchange(@Value("${application.amqp.extchange:cdnExchange}") String exchange)
     {
-
         return ExchangeBuilder.directExchange(exchange).durable(true).build();
     }
 
